@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http.Json;
+﻿using MessagePack;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -8,12 +9,6 @@ namespace RpcServer.Framework
     {
         public static void InitializeRpc(this WebApplicationBuilder builder, List<IRpcHandler> handlerList)
         {
-            builder.Services.Configure<JsonOptions>(options =>
-            {
-                options.SerializerOptions.PropertyNamingPolicy = null; // PascalCase 유지
-                options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull; // null 필드 제외
-            });
-
             builder.Services.AddSingleton<IRpcService>(provider => 
                 new RpcService(provider.GetRequiredService<ILogger<RpcService>>(), handlerList));
         }
@@ -23,13 +18,13 @@ namespace RpcServer.Framework
     {
         public static void MapGetRpc(this WebApplication app, string pattern)
         {
-            app.MapGet($"{pattern}/{{method}}", (string method, HttpContext httpCtx, IRpcService rpcSvc) =>
+            app.MapGet($"{pattern}/{{method}}", async (HttpContext httpCtx, IRpcService rpcSvc, string method) =>
             {
                 var querySeq = GetSequence(httpCtx.Request.Query);
                 var queryArgDict = httpCtx.Request.Query.ToDictionary(pair => pair.Key, pair => (object)pair.Value.ToString());
                 var rpcReq = RpcRequest.From(querySeq, method, queryArgDict);
                 var rpcRes = rpcSvc.Invoke(httpCtx, rpcReq);
-                return Results.Ok(rpcRes);
+                await DumpAsync(httpCtx, rpcRes);
             });
         }
 
@@ -38,10 +33,12 @@ namespace RpcServer.Framework
             app.MapPost(pattern, async (HttpContext httpCtx, IRpcService rpcSvc) =>
             {
                 var contentType = GetContentType(httpCtx.Request.Headers);
-                var bodyReqList = await MapFromStreamAsync<List<RpcRequest>>(httpCtx.Request.Body, contentType);
+                var bodyReqList = await LoadJsonStreamAsync<List<RpcRequest>>(httpCtx.Request.Body, contentType);
                 if (bodyReqList == null)
                 {
-                    return Results.BadRequest();
+                    httpCtx.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    await DumpAsync(httpCtx, new List<RpcResponse>());
+                    return;
                 }
 
                 var outResList = new List<RpcResponse>(bodyReqList.Count);
@@ -53,7 +50,7 @@ namespace RpcServer.Framework
                     outResList.Add(eachRes);
                 }
 
-                return Results.Ok(outResList);
+                await DumpAsync(httpCtx, outResList);
             });
 
         }
@@ -79,7 +76,7 @@ namespace RpcServer.Framework
             return str;
         }
 
-        private static async Task<T?> MapFromStreamAsync<T>(Stream stream, string contentType) where T : class
+        private static async Task<T?> LoadJsonStreamAsync<T>(Stream stream, string contentType) where T : class
         {
             using (var reader = new StreamReader(stream))
             {
@@ -88,6 +85,73 @@ namespace RpcServer.Framework
                 return JsonSerializer.Deserialize<T>(str);
             }
         }
+        private static async Task DumpJsonAsync(HttpContext httpCtx, object objRes)
+        {         
+            var strRes = JsonSerializer.Serialize(objRes, JsonSerializerOpts);
+            var bufRes = Encoding.UTF8.GetBytes(strRes);
+
+            httpCtx.Response.ContentType = "application/json";
+            await httpCtx.Response.Body.WriteAsync(bufRes);
+        }
+
+        private static async Task DumpMsgpLzBase64Async(HttpContext httpCtx, object objRes)
+        {
+            var bufRes = MessagePackSerializer.Serialize(objRes, MsgpSerializerOpts);
+            var base64str = Convert.ToBase64String(bufRes);
+
+            httpCtx.Response.ContentType = "text/plain";
+            await httpCtx.Response.WriteAsync(base64str);
+        }
+
+        private static async Task DumpMsgpBase64Async(HttpContext httpCtx, object objRes)
+        {
+            var bufRes = MessagePackSerializer.Serialize(objRes);
+            var base64str = Convert.ToBase64String(bufRes);
+            
+            httpCtx.Response.ContentType = "text/plain";
+            await httpCtx.Response.WriteAsync(base64str);
+        }
+
+        private static async Task DumpMsgpAsync(HttpContext httpCtx, object objRes)
+        {
+            var bufRes = MessagePackSerializer.Serialize(objRes, MsgpSerializerOpts);
+            var base64str = Convert.ToBase64String(bufRes);
+            
+            httpCtx.Response.ContentType = "application/x-msgpack";
+            await httpCtx.Response.Body.WriteAsync(bufRes);
+        }
+
+        private static async Task DumpAsync(HttpContext httpCtx, object objRes)
+        {
+            var outEncoding = httpCtx.Request.Query["out"].ToString();
+            switch (outEncoding)
+            {
+                case "json":
+                    await DumpJsonAsync(httpCtx, objRes);
+                    break;
+                case "msgp-lz-base64":
+                    await DumpMsgpLzBase64Async(httpCtx, objRes);
+                    break;
+                case "msgp-base64":
+                    await DumpMsgpBase64Async(httpCtx, objRes);
+                    break;
+                default:
+                    await DumpJsonAsync(httpCtx, objRes);
+                    break;
+            }
+        }
+
+        private readonly static JsonSerializerOptions JsonSerializerOpts = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = null, // PascalCase 유지
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, // null 필드 제외
+        };
+
+        private readonly static MessagePackSerializerOptions MsgpSerializerOpts =
+            MessagePackSerializerOptions.Standard
+                .WithCompressionMinLength(1024) // 저용량 압축 효율 낮음
+                .WithCompression(MessagePackCompression.Lz4BlockArray);
+                
     }
 
 }

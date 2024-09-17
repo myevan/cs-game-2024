@@ -5,6 +5,7 @@ var builder = WebApplication.CreateSlimBuilder(args);
 builder.InitializeRpc(new List<IRpcHandler>
 {
     new RpcHandler<BenchmarkService>("benchmark-hello", (svc, req) => svc.Hello(req)),
+    new RpcHandler<BenchmarkService>("benchmark-large", (svc, req) => svc.Large(req)),
 });
 builder.Services.AddScoped<BenchmarkService>();
 
