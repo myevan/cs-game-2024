@@ -4,3 +4,14 @@ GET {{RpcServer_HostAddress}}/
 Accept: application/json
 
 ###
+POST {{RpcServer_HostAddress}}/rpc-batch/
+Accept: application/json
+
+[
+    {
+        "Seq": 0,
+        "Method": "benchmark-hello",
+        "ArgDict": { "Name": "Jaru" }
+    }
+]
+###
