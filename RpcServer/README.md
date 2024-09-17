@@ -24,7 +24,7 @@ Requests/sec:  80218.80
 Transfer/sec:     65.71MB
 ```
 
-### 평문
+### 평문 응답
 
 초당 13만?!
 
@@ -38,4 +38,20 @@ Running 10s test @ http://localhost:5000/
   1388760 requests in 10.00s, 217.21MB read
 Requests/sec: 138863.70
 Transfer/sec:     21.72MB
+```
+
+### 평문 요청-응답
+
+초당 10만
+
+```
+$ wrk -t1 -c100 -d10s http://localhost:5000/rpc/benchmark-hello?name=Jaru
+Running 10s test @ http://localhost:5000/rpc/benchmark-hello?name=Jaru
+  1 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   807.95us  658.83us  34.42ms   96.29%
+    Req/Sec   103.19k     9.08k  128.06k    71.00%
+  1026924 requests in 10.01s, 229.17MB read
+Requests/sec: 102589.22
+Transfer/sec:     22.89MB
 ```
