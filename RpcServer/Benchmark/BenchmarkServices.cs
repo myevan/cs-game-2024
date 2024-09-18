@@ -7,7 +7,7 @@ namespace RpcServer.Benchmark
         public RpcResponse Hello(RpcRequest req)
         {
             var reqHello = req.MapArgDict<BenchmarkHello>();
-            return RpcResponse.From(req).AppendNewString("MsgList", $"Hello, {reqHello.Name}!");
+            return RpcResponse.From(req).AddString("MsgList", $"Hello, {reqHello.Name}!");
         }
         public RpcResponse Large(RpcRequest req)
         {
@@ -16,7 +16,7 @@ namespace RpcServer.Benchmark
 
             for (int i = 0; i != reqLarge.Count; ++i)
             {
-                resLarge.AppendNewString("MsgList", $"Item({i})");
+                resLarge.AddString("MsgList", $"Item({i})");
             }
             return resLarge;
         }
