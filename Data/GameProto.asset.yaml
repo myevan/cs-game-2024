@@ -1,0 +1,12 @@
+HeroProtoList:
+  - Num: 101
+    Name: AAAA
+    Div: X
+  - Num: 102
+    Name: BBBB
+    Div: X
+HeroProtoNumToRow:
+  101: 0
+  102: 1
+HeroProtoDivToRowList:
+  X: [0, 1]
