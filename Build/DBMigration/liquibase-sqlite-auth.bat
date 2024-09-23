@@ -1,0 +1,1 @@
+call %~dp0..\..\Tool\liquibase-4.29.2\liquibase.bat --driver=org.sqlite.JDBC --url=jdbc:sqlite:%~dp0..\..\App\auth.db --changeLogFile=auth.change-log.yaml %*

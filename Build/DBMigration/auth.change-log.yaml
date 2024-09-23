@@ -1,0 +1,39 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: myevan
+      changes:
+        - createTable:
+            tableName: Account
+            columns:
+              - column: { name: Id, type: BIGINT, constraints: { nullable: false, primaryKey: true } }
+              - column: { name: ClientRandSeed, type: int }
+              - column: { name: ServerRandSeed, type: int }
+              - column: { name: CreateTime, type: datetime(3), defaultValueDate: CURRENT_TIMESTAMP(3) } # Seconds
+              - column: { name: UpdateTime, type: datetime(3), defaultValueDate: CURRENT_TIMESTAMP(3) } # Seconds
+        - createTable:
+            tableName: AccountDevice
+            columns:
+              - column: { name: Idfv, type: VARCHAR(40), constraints: { nullable: false, primaryKey: true} } # PREFIX(3)-GUID(36)
+              - column: { name: AccountId, type: BIGINT, constraints: { nullable: false} }
+              - column: { name: CreateTime, type: datetime(3), defaultValueDate: CURRENT_TIMESTAMP(3) } # Seconds
+              - column: { name: UpdateTime, type: datetime(3), defaultValueDate: CURRENT_TIMESTAMP(3) } # Seconds
+        - createTable:
+            tableName: AccountSession
+            columns:
+              - column: { name: AccountId, type: BIGINT, constraints: { nullable: false, primaryKey: true} }
+              - column: { name: Id, type: VARCHAR(64), constraints: { nullable: false} } # BASE64(BYTE(32))
+              - column: { name: ShardId, type: int, constraints: { nullable: false} } 
+              - column: { name: Payload, type: VARCHAR(128), constraints: { nullable: false} } # BASE64(BYTE(64))
+              - column: { name: CreateTime, type: datetime(3), defaultValueDate: CURRENT_TIMESTAMP(3) } # Seconds
+              - column: { name: UpdateTime, type: datetime(3), defaultValueDate: CURRENT_TIMESTAMP(3) } # Seconds
+        - createIndex:
+            indexName: Idx_AccountDevice_AccountId
+            tableName: AccountDevice
+            columns:
+              - column: { name: AccountId }
+        - createIndex:
+            indexName: Idx_AccountSession_Id
+            tableName: AccountSession
+            columns:
+              - column: { name: Id }

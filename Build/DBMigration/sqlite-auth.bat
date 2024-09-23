@@ -1,0 +1,1 @@
+call %~dp0..\..\Tool\sqlite-tools-win-x64-3460100\sqlite3.exe %~dp0..\..\App\auth.db
