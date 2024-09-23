@@ -1,0 +1,9 @@
+SchemeConfigList:
+  - Name: Hero
+    FieldDeclList:
+      - Name: Num
+        Type: int
+      - Name: Name
+        Type: str
+      - Name: Div
+        Type: str

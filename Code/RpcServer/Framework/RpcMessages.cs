@@ -68,11 +68,29 @@ namespace RpcServer.Framework
             return this;
         }
 
-        public RpcResponse AppendNewString(string inKey, string inStr)
+        public RpcResponse AddString(string inKey, string inStr, ILogger? logger = null)
         {
-            var ctxStrList = RpcHelper.TouchCollection<List<string>>(ref _newDict, inKey);
-            ctxStrList.Add(inStr);
-            return this;
+            if (!CtxDict.TryGetValue(inKey, out var oldVal))
+            {
+                var newVal = new List<string>(1) { inStr };
+                CtxDict.Add(inKey, newVal);
+                return this;
+            }
+
+            var oldStrList = oldVal as List<string>;
+            if (oldStrList == null)
+            {
+                if (logger == null)
+                {                    
+                    return this;
+                }
+
+                logger.LogError($"NOT_FOUND_RPC_RESPONSE_CTX_KEY({inKey}) STR({inStr})");
+                return this;
+            }
+
+            oldStrList.Add(inStr);
+            return this;            
         }
 
         [Key(0)]
@@ -85,10 +103,7 @@ namespace RpcServer.Framework
         public RpcError? Error { get; set; } = null;
 
         [Key(3)]
-        public Dictionary<string, object> NewDict { get { return _newDict; } set { _newDict = value; } }
-
-        [IgnoreMember]
-        private Dictionary<string, object> _newDict = new();
+        public Dictionary<string, object> CtxDict { get; set; } = new();        
     }
 
 
